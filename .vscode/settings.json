@@ -1,0 +1,23 @@
+{
+    "go.buildOnSave": true,
+    "go.lintOnSave": true,
+    "go.vetOnSave": true,
+    "go.buildTags": "",
+    "go.buildFlags": [],
+    "go.lintTool": "golint",
+    "go.lintFlags": [],
+    "go.vetFlags": [], 
+    "go.testOnSave": false,
+    "go.coverOnSave": false,
+    "go.useCodeSnippetsOnFunctionSuggest": false,
+    "go.formatOnSave": true, 
+    "go.formatTool": "goreturns",
+    "go.formatFlags": [],
+    "go.goroot": "/usr/lib/go",
+    "go.gopath": "/home/hamza/go",
+    "go.inferGopath": false,
+    "go.gocodeAutoBuild": false,
+    "path-intellisense.extensionOnImport": true,
+    "path-intellisense.showHiddenFiles": true,
+    "path-intellisense.autoSlashAfterDirectory": true
+}
