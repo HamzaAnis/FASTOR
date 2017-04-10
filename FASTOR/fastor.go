@@ -1,8 +1,21 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"net/http"
+	"os"
+)
 
-func maiin()
-{
-    fmt.Println("Hello World")
+type Page struct {
+	Title string
+	Body  []byte
+}
+
+func cdcHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Testing1")
+}
+
+func main() {
+	http.HandleFunc("/fastor", cdcHandler)
+	http.ListenAndServe(":"+os.Args[1], nil)
 }
