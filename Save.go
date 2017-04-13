@@ -1,8 +1,11 @@
 package main
 
-import "fmt"
-import "net"
-import "net/url"
+import (
+	"fmt"
+	"net"
+	"net/url"
+	"strings"
+)
 
 func main() {
 
@@ -10,7 +13,7 @@ func main() {
 
 	// s := "http://www.google.com/hamzaa/nis.png:8008"
 
-	s := "htt://www.google.com/hamzaanis"
+	s := "http://www.google.com/hamzaanis.js"
 	u, err := url.Parse(s)
 	if err != nil {
 		panic(err)
@@ -22,6 +25,11 @@ func main() {
 	fmt.Println("Host is " + host)
 	fmt.Println(port)
 
+	typee := u.Path[1:]
+	filet := strings.Split(typee, ".")
+	if filet[len(filet)-1] != "html" {
+		fmt.Println("The image is found named " + typee)
+	}
 	fmt.Printf("Path is %v\n", u.Path)
 
 }
