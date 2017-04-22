@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -71,6 +72,7 @@ func enterDetails(a net.Conn) {
 
 	//particiption choice
 	part, _ := reader.ReadString('\n')
+	// part := "Yes"
 	a.Write([]byte(part))
 }
 
@@ -78,22 +80,39 @@ func main() {
 	//1st port wil be for the webserver and second port will be for the torserver
 	port := ""
 	relaysserverport := ""
+	relaysCountPort := ""
 	if len(os.Args) > 1 {
 		port = os.Args[1]
 		relaysserverport = os.Args[2]
+		temp, _ := strconv.Atoi(relaysserverport)
+		temp++
+		relaysCountPort = string(temp)
 	} else {
-		port = "9999"
+		port = "8081"
 		relaysserverport = "9696"
+		relaysCountPort = "9697"
 	}
 
 	a, err := net.Dial("tcp", "localhost:"+relaysserverport)
+	numRelays, err := net.Dial("tcp", "localhost:"+relaysCountPort)
 	if err != nil {
 		fmt.Println("Dial error:", err)
 	}
 	defer a.Close()
+	defer numRelays.Close()
 	go enterDetails(a)
 
-	//default will go here
+	for {
+		number := make([]byte, 20)
+		numRelays.Write([]byte("Number of relays"))
+		numRelays.Read(number)
+		// fmt.Println("The number of the relays online is ", string(number))
+		if string(number) == "1" {
+			fmt.Println("The relays are available on the server. Starting HTTp Server")
+			break
+		}
+	}
+	// default will go here
 	http.HandleFunc("/fastor/", torhandler)
 	http.Handle("/files/", http.StripPrefix("/files/", http.FileServer(http.Dir("."))))
 	http.ListenAndServe(":"+port, nil)

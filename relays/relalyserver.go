@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -25,12 +26,15 @@ func main() {
 	relaynNumberPort := ""
 	if len(os.Args) > 1 {
 		port = os.Args[1]
+		temp, _ := strconv.Atoi(port)
+		temp++
+		relaynNumberPort = string(temp)
 	} else {
 		port = "9696"
-		// relaynNumberPort =
+		relaynNumberPort = "9697"
 	}
 	connection, err := net.Listen("tcp", ":"+port)
-	connection2, err2 := net.Listen("tcp", ":"+port)
+	connection2, err2 := net.Listen("tcp", ":"+relaynNumberPort)
 	if err != nil || err2 != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -45,13 +49,15 @@ func main() {
 
 	for {
 		conn, err := connection.Accept()
-		if err != nil {
+		conn2, err2 := connection2.Accept()
+		if err != nil || err2 != nil {
 			fmt.Println(err)
 			continue
 		} else {
 			fmt.Println("A client has connected")
 			conn.Write([]byte("Hello FASTOR user!"))
-			go handleConnection(conn, requestchan, addRelay, rmRelay, &numberOfRelays)
+			go handleConnection(conn, conn2, requestchan, addRelay, rmRelay, &numberOfRelays)
+
 			// go check(conn)
 		}
 	}
@@ -75,11 +81,11 @@ func promptName(c net.Conn) string {
 }
 
 func promptChoice(c net.Conn) bool {
-	fmt.Println("\t\t\tEntered")
 	c.Write([]byte("Do you want to participate in the anonymous service?(Y/N)"))
-	choice := make([]byte, 3)
+	choice := make([]byte, 1)
 	c.Read(choice)
-	fmt.Println("The choice is ", string(choice))
+	// fmt.Printf("The choice is %vJ\n", choice)
+	// fmt.Printf("The length of choice is %vJ\n", len(choice))
 	participate := false
 	if string(choice) == "Y" {
 		participate = true
@@ -92,7 +98,7 @@ func promptChoice(c net.Conn) bool {
 }
 
 //Core
-func handleConnection(c net.Conn, requestchan chan<- string, addRelay chan<- Relay, rmRelay chan<- Relay, numberRelay *int) {
+func handleConnection(c net.Conn, num net.Conn, requestchan chan<- string, addRelay chan<- Relay, rmRelay chan<- Relay, numberRelay *int) {
 	//we first need to add current relay to the channel
 	//filling in the relay structure
 	relay := Relay{
@@ -127,11 +133,31 @@ func handleConnection(c net.Conn, requestchan chan<- string, addRelay chan<- Rel
 	//and write it with nick to the
 	go relay.ReadLinesInto(requestchan)
 
+	//to send the nnumber of relays
+	go sendNumber(num, numberRelay)
+
 	//given a channel, writelines prints lines from it
 	//we are giving here client.ch and this routine is for each client
 	//so effectively each client is printitng its channel
 	//to which our messagehandler has added messages for boroadcast
 	relay.WriteLinesFrom(relay.ch)
+
+}
+
+// Initially check the number of the total relays available
+func sendNumber(num net.Conn, numberRelay *int) {
+	for {
+		temp := make([]byte, 100)
+		t := *numberRelay
+		a := strconv.Itoa(t)
+		// fmt.Println("Sending ", a)
+		//TO check that a request is made
+		num.Read(temp)
+		// fmt.Println("Check ", string(temp))
+		//writing number to relay
+		num.Write([]byte(a))
+	}
+
 }
 
 //ReadLinesInto is a method on Client type
