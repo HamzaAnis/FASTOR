@@ -9,6 +9,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/fatih/color"
 )
 
 //Relay is a struct to store the information of the relays
@@ -54,29 +56,19 @@ func main() {
 			fmt.Println(err)
 			continue
 		} else {
-			fmt.Println("A client has connected")
+			color.Red("\tA client has connected")
 			conn.Write([]byte("Hello FASTOR user!"))
 			go handleConnection(conn, conn2, requestchan, addRelay, rmRelay, &numberOfRelays)
-
-			// go check(conn)
 		}
-	}
-}
-func check(c net.Conn) {
-	temp := make([]byte, 100)
-	for {
-
-		c.Read(temp)
-
-		fmt.Println("The read value in check is ", string(temp))
 	}
 }
 
 func promptName(c net.Conn) string {
+	clr := color.New(color.FgGreen)
 	io.WriteString(c, "What is your relay name? ")
-	name := make([]byte, 20)
+	name := make([]byte, 8)
 	c.Read(name)
-	fmt.Println("The name of the relay ", string(name))
+	clr.Printf("The name of the relay: %v\n", string(name))
 	return string(name)
 }
 
@@ -89,10 +81,10 @@ func promptChoice(c net.Conn) bool {
 	participate := false
 	if string(choice) == "Y" {
 		participate = true
-		fmt.Println("Relay is participating")
+		color.Green("Relay is participating")
 	} else {
 		participate = false
-		fmt.Println("Relay is not participating")
+		color.Red("Relay is not participating")
 	}
 	return participate
 }
@@ -190,12 +182,12 @@ func handleRelays(requestchan <-chan string, addRelay <-chan Relay, rmRelay <-ch
 	for {
 		select {
 		case site := <-requestchan:
-			log.Printf("New request: %s", site)
+			color.Magenta("New request: %s", site)
 			for _, ch := range relays {
 				go func(mch chan<- string) { mch <- "\033[1;33;40m" + site + "\033[m" }(ch)
 			}
 		case relay := <-addRelay:
-			log.Printf("New relay: %v\n\tNumber= %v\n\tParticipating= %v", relay.name, relay.number, relay.participate)
+			color.Blue("New relay: %v\n\tNumber= %v\n\tParticipating= %v", relay.name, relay.number, relay.participate)
 			relays[relay.conn] = relay.ch
 		case relay := <-rmRelay:
 			log.Printf("Relay disconnects: %v\n", relay.conn)

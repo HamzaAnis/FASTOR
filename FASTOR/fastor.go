@@ -11,6 +11,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/fatih/color"
 )
 
 //A function to check the request and do the corrosponding action
@@ -53,13 +55,16 @@ func torhandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func enterDetails(a net.Conn) {
+	c := color.New(color.FgHiCyan)
+	c.Add(color.Bold)
+
 	//Read message from the server
 	message := make([]byte, 100)
 	a.Read(message)
-	fmt.Println(string(message))
+	c.Println("\t\t\t", string(message))
 	//Welcome message
 	a.Read(message)
-	fmt.Println(string(message))
+	c.Println(string(message))
 
 	reader := bufio.NewReader(os.Stdin)
 	//relay name
@@ -68,7 +73,7 @@ func enterDetails(a net.Conn) {
 
 	//Participate message
 	a.Read(message)
-	fmt.Println(string(message))
+	c.Println(string(message))
 
 	//particiption choice
 	part, _ := reader.ReadString('\n')
@@ -77,6 +82,7 @@ func enterDetails(a net.Conn) {
 }
 
 func main() {
+	// c := color.New(color.FgBlue)
 	//1st port wil be for the webserver and second port will be for the torserver
 	port := ""
 	relaysserverport := ""
@@ -88,7 +94,7 @@ func main() {
 		temp++
 		relaysCountPort = string(temp)
 	} else {
-		port = "8081"
+		port = "8082"
 		relaysserverport = "9696"
 		relaysCountPort = "9697"
 	}
@@ -103,12 +109,12 @@ func main() {
 	go enterDetails(a)
 
 	for {
-		number := make([]byte, 20)
+		number := make([]byte, 1)
 		numRelays.Write([]byte("Number of relays"))
 		numRelays.Read(number)
-		// fmt.Println("The number of the relays online is ", string(number))
-		if string(number) == "1" {
-			fmt.Println("The relays are available on the server. Starting HTTp Server")
+		// color.Blue("The number of the relays online is %v\n", string(number))
+		if string(number) == "3" {
+			color.Red("The relays are available on the server. Starting HTTP Server")
 			break
 		}
 	}
