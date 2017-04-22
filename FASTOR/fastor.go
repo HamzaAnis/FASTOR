@@ -51,15 +51,27 @@ func torhandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func ReadLinesInto(a net.Conn) {
-	bufc := bufio.NewReader(a)
-	for {
-		line, err := bufc.ReadString('\n')
-		if err != nil {
-			break
-		}
-		fmt.Println("The message get is " + line)
-	}
+func enterDetails(a net.Conn) {
+	//Read message from the server
+	message := make([]byte, 100)
+	a.Read(message)
+	fmt.Println(string(message))
+	//Welcome message
+	a.Read(message)
+	fmt.Println(string(message))
+
+	reader := bufio.NewReader(os.Stdin)
+	//relay name
+	name, _ := reader.ReadString('\n')
+	a.Write([]byte(name))
+
+	//Participate message
+	a.Read(message)
+	fmt.Println(string(message))
+
+	//particiption choice
+	part, _ := reader.ReadString('\n')
+	a.Write([]byte(part))
 }
 
 func main() {
@@ -79,8 +91,8 @@ func main() {
 		fmt.Println("Dial error:", err)
 	}
 	defer a.Close()
-	go ReadLinesInto(a)
-	fmt.Println("Usma anis")
+	go enterDetails(a)
+
 	//default will go here
 	http.HandleFunc("/fastor/", torhandler)
 	http.Handle("/files/", http.StripPrefix("/files/", http.FileServer(http.Dir("."))))

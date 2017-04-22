@@ -22,13 +22,16 @@ type Relay struct {
 func main() {
 	numberOfRelays := 0
 	port := ""
+	relaynNumberPort := ""
 	if len(os.Args) > 1 {
-		port = ":" + os.Args[1]
+		port = os.Args[1]
 	} else {
-		port = ":" + "9696"
+		port = "9696"
+		// relaynNumberPort =
 	}
-	connection, err := net.Listen("tcp", port)
-	if err != nil {
+	connection, err := net.Listen("tcp", ":"+port)
+	connection2, err2 := net.Listen("tcp", ":"+port)
+	if err != nil || err2 != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
@@ -47,25 +50,41 @@ func main() {
 			continue
 		} else {
 			fmt.Println("A client has connected")
+			conn.Write([]byte("Hello FASTOR user!"))
 			go handleConnection(conn, requestchan, addRelay, rmRelay, &numberOfRelays)
+			// go check(conn)
 		}
 	}
 }
+func check(c net.Conn) {
+	temp := make([]byte, 100)
+	for {
 
-func promptName(c net.Conn, bufc *bufio.Reader) string {
+		c.Read(temp)
+
+		fmt.Println("The read value in check is ", string(temp))
+	}
+}
+
+func promptName(c net.Conn) string {
 	io.WriteString(c, "What is your relay name? ")
-	name, _, _ := bufc.ReadLine()
+	name := make([]byte, 20)
+	c.Read(name)
+	fmt.Println("The name of the relay ", string(name))
 	return string(name)
 }
 
-func promptChoice(c net.Conn, bufc *bufio.Reader) bool {
-	io.WriteString(c, "Do you want to participate in the anonymous service?(Y/N)")
-	choice, _, _ := bufc.ReadLine()
+func promptChoice(c net.Conn) bool {
+	fmt.Println("\t\t\tEntered")
+	c.Write([]byte("Do you want to participate in the anonymous service?(Y/N)"))
+	choice := make([]byte, 3)
+	c.Read(choice)
+	fmt.Println("The choice is ", string(choice))
 	participate := false
 	if string(choice) == "Y" {
 		participate = true
 		fmt.Println("Relay is participating")
-	} else if string(choice) == "N" {
+	} else {
 		participate = false
 		fmt.Println("Relay is not participating")
 	}
@@ -74,16 +93,13 @@ func promptChoice(c net.Conn, bufc *bufio.Reader) bool {
 
 //Core
 func handleConnection(c net.Conn, requestchan chan<- string, addRelay chan<- Relay, rmRelay chan<- Relay, numberRelay *int) {
-	bufc := bufio.NewReader(c)
-	defer c.Close()
-
 	//we first need to add current relay to the channel
 	//filling in the relay structure
 	relay := Relay{
 		conn:        c,
-		name:        promptName(c, bufc),
+		name:        promptName(c),
 		ch:          make(chan string),
-		participate: promptChoice(c, bufc),
+		participate: promptChoice(c),
 		number:      *numberRelay,
 	}
 	*numberRelay++
@@ -101,9 +117,6 @@ func handleConnection(c net.Conn, requestchan chan<- string, addRelay chan<- Rel
 		log.Printf("Connection from %v closed.\n", c.RemoteAddr())
 		rmRelay <- relay
 	}()
-
-	//just a welcome message
-	io.WriteString(c, fmt.Sprintf("Welcome, %s!\n\n", relay.name))
 
 	//We are now populating the other channel now
 	//our message handler is waiting on this channel as well
@@ -156,7 +169,7 @@ func handleRelays(requestchan <-chan string, addRelay <-chan Relay, rmRelay <-ch
 				go func(mch chan<- string) { mch <- "\033[1;33;40m" + site + "\033[m" }(ch)
 			}
 		case relay := <-addRelay:
-			log.Printf("New relay: %v\n", relay.conn)
+			log.Printf("New relay: %v\n\tNumber= %v\n\tParticipating= %v", relay.name, relay.number, relay.participate)
 			relays[relay.conn] = relay.ch
 		case relay := <-rmRelay:
 			log.Printf("Relay disconnects: %v\n", relay.conn)

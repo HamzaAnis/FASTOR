@@ -84,3 +84,126 @@
 // //     file.Close()
 // //     fmt.Println("Success!")
 // // }
+
+// package main
+
+// import "fmt"
+
+// // define Dog object type
+// type Dog struct {
+// 	Name  string
+// 	Color string
+// }
+
+// func main() {
+
+// 	// create instance of object and set properties
+// 	Spot := Dog{Name: "Spot", Color: "brown"}
+
+// 	// get pointer of object
+// 	SpotPointer := &Spot
+
+// 	// modify field through pointer
+// 	SpotPointer.Color = "black"
+
+// 	fmt.Println(Spot.Color)
+
+// }
+
+// package main
+
+// import (
+// 	"fmt"
+// 	"time"
+// )
+
+// func printSlowly(s string, n int) {
+// 	for i := 0; i < n; i++ {
+// 		fmt.Println(i, s)
+// 		time.Sleep(300 * time.Millisecond)
+// 	}
+// }
+
+// func main() {
+
+// 	// This is a normal function call.
+// 	// Main() will finish this off before continuing.
+// 	printSlowly("directly functioning", 3)
+
+// 	// The go functions below will each spin off to happen each in their own thread,
+// 	// Meaning they'll be called _concurrently_.
+
+// 	// Calling the named function as a go routine.
+// 	go printSlowly("red fish goroutine", 3)
+// 	go printSlowly("blue fish goroutine", 3)
+
+// 	// Call an anonymous function as a go routine.
+// 	go func(ss string, nn int) {
+// 		for i := 0; i < nn; i++ {
+// 			fmt.Println(i, ss)
+// 			time.Sleep(150 * time.Millisecond)
+// 		}
+// 	}("anony fish goroutine", 3)
+
+// 	// Waits for a button to be pushed.
+// 	// Try commenting this!
+// 	var input string
+// 	fmt.Scanln(&input) // Just push RETURN to finish the program.
+// 	fmt.Println("DONE.")
+// }
+
+package main
+
+import (
+	"bytes"
+	"encoding/binary"
+	"fmt"
+)
+
+type MyString struct {
+	Length  int32
+	Message [10]byte
+}
+
+type MyMessage struct {
+	First   uint64
+	Second  byte
+	_       byte // padding
+	Third   uint32
+	Message MyString
+}
+
+func main() {
+	buf := new(bytes.Buffer)
+	a := MyMessage{
+		First:   10,
+		Second:  10,
+		Third:   10,
+		Message: MyString{0, [10]byte{'H', 'e', 'l', 'l', 'o', '\n'}},
+	}
+	b := MyMessage{
+		First:   100,
+		Second:  0,
+		Third:   100,
+		Message: MyString{0, [10]byte{'H', 'e', '\n'}},
+	}
+	test := []MyMessage{a, b}
+	fmt.Println(test)
+	err := binary.Write(buf, binary.LittleEndian, &test)
+	if err != nil {
+		fmt.Printf("binary.Read failed:", err)
+		return
+	}
+
+	// <<--- CONN -->>
+	// msg := []MyMessage{}
+	msg2 := new(MyMessage)
+
+	err2 := binary.Read(buf, binary.LittleEndian, msg2)
+	if err2 != nil {
+		fmt.Printf("binary.Read failed:", err2)
+		return
+	}
+	fmt.Println(msg2)
+
+}
