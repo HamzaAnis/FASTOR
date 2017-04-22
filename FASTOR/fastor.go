@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/fatih/color"
@@ -32,7 +31,7 @@ func handleStyle(link string) {
 }
 
 //on every / request the handler will call this
-func torhandler(w http.ResponseWriter, r *http.Request) {
+func torhandler(w http.ResponseWriter, r *http.Request, server net.Conn) {
 	domain := r.URL.Path[1:7]
 	link := "http://" + r.URL.Path[8:]
 
@@ -41,6 +40,7 @@ func torhandler(w http.ResponseWriter, r *http.Request) {
 	// if domain == "fastor" {
 	fmt.Printf("Domain: %v\n", domain)
 	fmt.Printf("Website:  %v\n", link)
+	server.Write([]byte(link))
 	res, err := http.Get(link)
 	if err != nil {
 		// log.Fatal(err)
@@ -90,11 +90,13 @@ func main() {
 	if len(os.Args) > 1 {
 		port = os.Args[1]
 		relaysserverport = os.Args[2]
-		temp, _ := strconv.Atoi(relaysserverport)
-		temp++
-		relaysCountPort = string(temp)
+		relaysCountPort = os.Args[3]
+		// fmt.Printf("the sencond one is %vd", relaysserverport)
+		// temp, _ := strconv.Atoi(relaysserverport)
+		// temp++
+		// relaysCountPort = string(temp)
 	} else {
-		port = "8082"
+		port = "8785"
 		relaysserverport = "9696"
 		relaysCountPort = "9697"
 	}
@@ -112,14 +114,17 @@ func main() {
 		number := make([]byte, 1)
 		numRelays.Write([]byte("Number of relays"))
 		numRelays.Read(number)
-		// color.Blue("The number of the relays online is %v\n", string(number))
-		if string(number) == "3" {
-			color.Red("The relays are available on the server. Starting HTTP Server")
+		// color.Blue("The number ofH the relays online is %v\n", string(number))
+		if string(number) == "1" {
+			color.Red("The minimum relays are available on the server. Starting HTTP Server")
 			break
 		}
 	}
+
 	// default will go here
-	http.HandleFunc("/fastor/", torhandler)
+	http.HandleFunc("/fastor/", func(w http.ResponseWriter, r *http.Request) {
+		torhandler(w, r, a)
+	})
 	http.Handle("/files/", http.StripPrefix("/files/", http.FileServer(http.Dir("."))))
 	http.ListenAndServe(":"+port, nil)
 }

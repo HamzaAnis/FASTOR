@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"log"
@@ -66,7 +65,7 @@ func main() {
 func promptName(c net.Conn) string {
 	clr := color.New(color.FgGreen)
 	io.WriteString(c, "What is your relay name? ")
-	name := make([]byte, 8)
+	name := make([]byte, 20)
 	c.Read(name)
 	clr.Printf("The name of the relay: %v\n", string(name))
 	return string(name)
@@ -76,7 +75,7 @@ func promptChoice(c net.Conn) bool {
 	c.Write([]byte("Do you want to participate in the anonymous service?(Y/N)"))
 	choice := make([]byte, 1)
 	c.Read(choice)
-	// fmt.Printf("The choice is %vJ\n", choice)
+	// fmt.Printf("The choice is %vJ\n", string(choice))
 	// fmt.Printf("The length of choice is %vJ\n", len(choice))
 	participate := false
 	if string(choice) == "Y" {
@@ -123,7 +122,7 @@ func handleConnection(c net.Conn, num net.Conn, requestchan chan<- string, addRe
 
 	// another go routine whose purpose is to keep on waiting for user input
 	//and write it with nick to the
-	go relay.ReadLinesInto(requestchan)
+	go relay.ServerRequest(requestchan)
 
 	//to send the nnumber of relays
 	go sendNumber(num, numberRelay)
@@ -155,14 +154,12 @@ func sendNumber(num net.Conn, numberRelay *int) {
 //ReadLinesInto is a method on Client type
 //it keeps waiting for user to input a line, ch chan is the msgchannel
 //it formats and writes the message to the channel
-func (c Relay) ReadLinesInto(ch chan<- string) {
-	bufc := bufio.NewReader(c.conn)
+func (c Relay) ServerRequest(ch chan<- string) {
 	for {
-		line, err := bufc.ReadString('\n')
-		if err != nil {
-			break
-		}
-		ch <- fmt.Sprintf("%s: %s", c.name, line)
+		url := make([]byte, 100)
+		c.conn.Read(url)
+		fmt.Println("The request found is" + string(url))
+		//need to add a delay
 	}
 }
 
