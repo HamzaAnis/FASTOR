@@ -101,7 +101,7 @@ func main() {
 		heartBeatPort = strconv.Itoa(temp)
 		// color.Yellow(port + "   " + relaysserverport + " " + relaysCountPort + "  " + heartBeatPort)
 	} else {
-		port = "9825"
+		port = "8455"
 		relaysserverport = "9696"
 		relaysCountPort = "9697"
 		heartBeatPort = "9698"
@@ -124,7 +124,7 @@ func main() {
 		numRelays.Write([]byte("Number of relays"))
 		numRelays.Read(number)
 		// color.Blue("The number ofH the relays online is %v\n", string(number))
-		if string(number) == "1" {
+		if string(number) == "3" {
 			color.Red("The minimum relays are available on the server. Starting HTTP Server")
 			break
 		}
