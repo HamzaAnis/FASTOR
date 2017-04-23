@@ -152,58 +152,88 @@
 // 	fmt.Println("DONE.")
 // }
 
+// package main
+
+// import (
+// 	"bytes"
+// 	"encoding/binary"
+// 	"fmt"
+// )
+
+// type MyString struct {
+// 	Length  int32
+// 	Message [10]byte
+// }
+
+// type MyMessage struct {
+// 	First   uint64
+// 	Second  byte
+// 	_       byte // padding
+// 	Third   uint32
+// 	Message MyString
+// }
+
+// func main() {
+// 	buf := new(bytes.Buffer)
+// 	a := MyMessage{
+// 		First:   10,
+// 		Second:  10,
+// 		Third:   10,
+// 		Message: MyString{0, [10]byte{'H', 'e', 'l', 'l', 'o', '\n'}},
+// 	}
+// 	b := MyMessage{
+// 		First:   100,
+// 		Second:  0,
+// 		Third:   100,
+// 		Message: MyString{0, [10]byte{'H', 'e', '\n'}},
+// 	}
+// 	test := []MyMessage{a, b}
+// 	fmt.Println(test)
+// 	err := binary.Write(buf, binary.LittleEndian, &test)
+// 	if err != nil {
+// 		fmt.Printf("binary.Read failed:", err)
+// 		return
+// 	}
+
+// 	// <<--- CONN -->>
+// 	// msg := []MyMessage{}
+// 	msg2 := new(MyMessage)
+
+// 	err2 := binary.Read(buf, binary.LittleEndian, msg2)
+// 	if err2 != nil {
+// 		fmt.Printf("binary.Read failed:", err2)
+// 		return
+// 	}
+// 	fmt.Println(msg2)
+
+// }
+
 package main
 
 import (
-	"bytes"
-	"encoding/binary"
-	"fmt"
+	"net/url"
+
+	"github.com/fatih/color"
 )
 
-type MyString struct {
-	Length  int32
-	Message [10]byte
-}
-
-type MyMessage struct {
-	First   uint64
-	Second  byte
-	_       byte // padding
-	Third   uint32
-	Message MyString
-}
-
 func main() {
-	buf := new(bytes.Buffer)
-	a := MyMessage{
-		First:   10,
-		Second:  10,
-		Third:   10,
-		Message: MyString{0, [10]byte{'H', 'e', 'l', 'l', 'o', '\n'}},
-	}
-	b := MyMessage{
-		First:   100,
-		Second:  0,
-		Third:   100,
-		Message: MyString{0, [10]byte{'H', 'e', '\n'}},
-	}
-	test := []MyMessage{a, b}
-	fmt.Println(test)
-	err := binary.Write(buf, binary.LittleEndian, &test)
+
+	_, err := url.ParseRequestURI("http://www.google.com")
 	if err != nil {
-		fmt.Printf("binary.Read failed:", err)
-		return
+		color.Red("Invalid URI")
 	}
+	// link := "http://google.com"
+	// u, err := url.ParseRequestURI(link)
+	// fmt.Println(u.Scheme + "://" + u.Host)
+	// if err != nil {
+	// 	fmt.Println("The rl not correct")
+	// }
+	// response, err := http.Get(link)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// } else {
+	// 	defer response.Body.Close()
+	// 	io.Copy(os.Stdout, response.Body)
 
-	// <<--- CONN -->>
-	// msg := []MyMessage{}
-	msg2 := new(MyMessage)
-
-	err2 := binary.Read(buf, binary.LittleEndian, msg2)
-	if err2 != nil {
-		fmt.Printf("binary.Read failed:", err2)
-		return
-	}
-	fmt.Println(msg2)
-
+	// }
 }

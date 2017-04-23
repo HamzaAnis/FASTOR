@@ -3,13 +3,14 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
+
+	"io"
 
 	"github.com/fatih/color"
 )
@@ -40,15 +41,17 @@ func torhandler(w http.ResponseWriter, r *http.Request, server net.Conn) {
 	// if domain == "fastor" {
 	fmt.Printf("Domain: %v\n", domain)
 	fmt.Printf("Website:  %v\n", link)
-	server.Write([]byte(link))
-	res, err := http.Get(link)
-	if err != nil {
-		// log.Fatal(err)
-		http.Error(w, err.Error(), 500)
-	}
-	buf, err := ioutil.ReadAll(res.Body)
-	fmt.Fprintf(w, string(buf))
-	defer res.Body.Close()
+	// server.Write([]byte(link))
+	io.WriteString(server, link)
+	_, err := server.Write([]byte(link))
+
+	content := make([]byte, 1000000)
+
+	n, err := server.Read(content)
+	color.Blue(string(content[:n]))
+
+	fmt.Fprintf(w, string(content[:n]))
+	// defer res.Body.Close()
 	if err != nil {
 		log.Fatal(err)
 	}

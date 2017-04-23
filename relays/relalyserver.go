@@ -3,11 +3,16 @@ package main
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net"
+	"net/http"
+	"net/url"
+
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/fatih/color"
 )
@@ -154,12 +159,48 @@ func sendNumber(num net.Conn, numberRelay *int) {
 //ReadLinesInto is a method on Client type
 //it keeps waiting for user to input a line, ch chan is the msgchannel
 //it formats and writes the message to the channel
-func (c Relay) ServerRequest(ch chan<- string) {
+func (c Relay) ServerRequest(requestchan chan<- string) {
 	for {
-		url := make([]byte, 100)
-		c.conn.Read(url)
-		fmt.Println("The request found is" + string(url))
-		//need to add a delay
+		for i := 0; i < 1000; i++ {
+
+		}
+		// fmt.Println("\tStarting read")
+		link := make([]byte, 100)
+		n, err := c.conn.Read(link)
+		// fmt.Printf("The number of values read is %v\n", n)
+		// fmt.Printf("The read value is %vEND", string(link[:n]))
+
+		if err != nil {
+			color.Red("\t\tConnection is closed")
+		} else {
+			time.Sleep(2 * time.Second)
+			fmt.Printf("The request found is %v." + string(link[:n]))
+
+			_, err := url.ParseRequestURI(string(link[:n]))
+			if err == nil {
+				res, err := http.Get(string(link[:n]))
+				if err != nil {
+					color.Magenta("The url is not correct")
+					// log.Fatal(err)
+				}
+				responseData, err := ioutil.ReadAll(res.Body)
+
+				fmt.Println(string(responseData))
+				buf, err := ioutil.ReadAll(res.Body)
+				c.conn.Write(buf)
+				defer res.Body.Close()
+				if err != nil {
+					color.Yellow("Can not send the data")
+				}
+				requestchan <- string(link)
+			} else {
+				color.Yellow(string(link[:n]) + "C")
+				color.Magenta("Url is not correct")
+				c.conn.Write([]byte("The url received is not correct"))
+			}
+			//need to add a delay
+		}
+
 	}
 }
 
@@ -176,13 +217,12 @@ func (c Relay) WriteLinesFrom(ch <-chan string) {
 func handleRelays(requestchan <-chan string, addRelay <-chan Relay, rmRelay <-chan Relay) {
 	relays := make(map[net.Conn]chan<- string)
 
+	// relaysStorage := make([]Relay, 100)
+
 	for {
 		select {
 		case site := <-requestchan:
 			color.Magenta("New request: %s", site)
-			for _, ch := range relays {
-				go func(mch chan<- string) { mch <- "\033[1;33;40m" + site + "\033[m" }(ch)
-			}
 		case relay := <-addRelay:
 			color.Blue("New relay: %v\n\tNumber= %v\n\tParticipating= %v", relay.name, relay.number, relay.participate)
 			relays[relay.conn] = relay.ch
