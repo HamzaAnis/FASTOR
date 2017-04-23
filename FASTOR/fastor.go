@@ -18,6 +18,15 @@ import (
 	"github.com/fatih/color"
 )
 
+//Relay is a struct to store the information of the relays
+type Relay struct {
+	conn        net.Conn
+	name        string
+	number      int
+	ch          chan string
+	participate bool
+}
+
 //A function to check the request and do the corrosponding action
 //E.g For image save the image to the file
 //If stylesheet save the stylesheet
@@ -49,6 +58,24 @@ func torhandler(w http.ResponseWriter, r *http.Request, server net.Conn) {
 	server.Write([]byte(link))
 
 	content := make([]byte, 1000000)
+
+	// //receive structures
+	// buf := new(bytes.Buffer)
+	// n, _ := server.Read(content)
+	// buf.Write(content)
+	// relayDataBase := make(map[int]Relay)
+	// decoder := gob.NewDecoder(buf)
+	// err := decoder.Decode(&relayDataBase)
+	// if err != nil {
+	// 	color.Red("Not decoded")
+	// }
+
+	// table := termtables.CreateTable()
+	// table.AddHeaders("Number", "Relay name", "Particpating")
+	// for _, value := range relayDataBase {
+	// 	table.AddRow(value.number, value.name, value.participate)
+	// }
+	// color.Yellow(table.Render())
 
 	n, _ := server.Read(content)
 	color.Blue(string(content[:n]))
@@ -101,7 +128,7 @@ func main() {
 		heartBeatPort = strconv.Itoa(temp)
 		// color.Yellow(port + "   " + relaysserverport + " " + relaysCountPort + "  " + heartBeatPort)
 	} else {
-		port = "8474"
+		port = "8476"
 		relaysserverport = "9696"
 		relaysCountPort = "9697"
 		heartBeatPort = "9698"
@@ -124,7 +151,7 @@ func main() {
 		numRelays.Write([]byte("Number of relays"))
 		numRelays.Read(number)
 		// color.Blue("The number ofH the relays online is %v\n", string(number))
-		if string(number) == "3" {
+		if string(number) == "1" {
 			color.Red("The minimum relays are available on the server. Starting HTTP Server")
 			break
 		}

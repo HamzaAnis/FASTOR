@@ -219,7 +219,13 @@ func (c Relay) ServerRequest(requestchan chan<- Request) {
 
 }
 
-func (c Relay) getRequest(link string) {
+func (c Relay) getRequest(link string, relayDataBase map[int]Relay) {
+	// //sending strcuture
+	// buf := new(bytes.Buffer)
+	// encoder := gob.NewEncoder(buf)
+	// err := encoder.Encode(relayDataBase)
+	// c.conn.Write(buf.Bytes())
+
 	fmt.Print("The request found is " + link + "||\n")
 
 	_, err := url.ParseRequestURI(link)
@@ -261,7 +267,7 @@ func handleRelays(relaysDatabse map[int]Relay, requestchan <-chan Request, addRe
 		select {
 		case relay := <-requestchan:
 			color.Magenta("New request: %s", relay.url)
-			relay.relay.getRequest(relay.url)
+			relay.relay.getRequest(relay.url, relaysDatabse)
 		case relay := <-addRelay:
 			relaysDatabse[relay.number] = relay
 			displayTable(relaysDatabse)

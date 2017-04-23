@@ -208,32 +208,72 @@
 
 // }
 
+// package main
+
+// import (
+// 	"net/url"
+
+// 	"github.com/fatih/color"
+// )
+
+// func main() {
+
+// 	_, err := url.ParseRequestURI("http://www.google.com")
+// 	if err != nil {
+// 		color.Red("Invalid URI")
+// 	}
+// 	// link := "http://google.com"
+// 	// u, err := url.ParseRequestURI(link)
+// 	// fmt.Println(u.Scheme + "://" + u.Host)
+// 	// if err != nil {
+// 	// 	fmt.Println("The rl not correct")
+// 	// }
+// 	// response, err := http.Get(link)
+// 	// if err != nil {
+// 	// 	log.Fatal(err)
+// 	// } else {
+// 	// 	defer response.Body.Close()
+// 	// 	io.Copy(os.Stdout, response.Body)
+
+// 	// }
+// }
+
 package main
 
 import (
-	"net/url"
-
-	"github.com/fatih/color"
+	"bytes"
+	"encoding/gob"
+	"fmt"
 )
 
+var m = map[int]string{1: "one", 2: "two", 3: "three"}
+var a string = "Hamza"
+
 func main() {
+	buf := new(bytes.Buffer)
+	encoder := gob.NewEncoder(buf)
 
-	_, err := url.ParseRequestURI("http://www.google.com")
+	err := encoder.Encode(m)
 	if err != nil {
-		color.Red("Invalid URI")
+		panic(err)
 	}
-	// link := "http://google.com"
-	// u, err := url.ParseRequestURI(link)
-	// fmt.Println(u.Scheme + "://" + u.Host)
-	// if err != nil {
-	// 	fmt.Println("The rl not correct")
-	// }
-	// response, err := http.Get(link)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// } else {
-	// 	defer response.Body.Close()
-	// 	io.Copy(os.Stdout, response.Body)
 
-	// }
+	// your encoded stuff
+	// fmt.Println(buf.Bytes())
+
+	var decodedMap map[int]string
+	decoder := gob.NewDecoder(buf)
+
+	err = decoder.Decode(&decodedMap)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("%#v\n", decodedMap)
+
+	call()
+}
+
+func call() {
+	fmt.Println(a)
 }
