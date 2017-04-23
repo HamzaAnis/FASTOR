@@ -30,18 +30,23 @@ func main() {
 	numberOfRelays := 0
 	port := ""
 	relaynNumberPort := ""
+	hearbeatport := ""
 	if len(os.Args) > 1 {
 		port = os.Args[1]
 		temp, _ := strconv.Atoi(port)
 		temp++
 		relaynNumberPort = string(temp)
+		temp++
+		hearbeatport = string(temp)
 	} else {
 		port = "9696"
 		relaynNumberPort = "9697"
+		hearbeatport = "9698"
 	}
 	connection, err := net.Listen("tcp", ":"+port)
 	connection2, err2 := net.Listen("tcp", ":"+relaynNumberPort)
-	if err != nil || err2 != nil {
+	connection3, err3 := net.Listen("tcp", ":"+hearbeatport)
+	if err != nil || err2 != nil || err3 != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
@@ -56,13 +61,14 @@ func main() {
 	for {
 		conn, err := connection.Accept()
 		conn2, err2 := connection2.Accept()
-		if err != nil || err2 != nil {
+		conn3, err3 := connection3.Accept()
+		if err != nil || err2 != nil || err3 != nil {
 			fmt.Println(err)
 			continue
 		} else {
 			color.Red("\tA client has connected")
 			conn.Write([]byte("Hello FASTOR user!"))
-			go handleConnection(conn, conn2, requestchan, addRelay, rmRelay, &numberOfRelays)
+			go handleConnection(conn, conn2, conn3, requestchan, addRelay, rmRelay, &numberOfRelays)
 		}
 	}
 }
@@ -94,7 +100,7 @@ func promptChoice(c net.Conn) bool {
 }
 
 //Core
-func handleConnection(c net.Conn, num net.Conn, requestchan chan<- string, addRelay chan<- Relay, rmRelay chan<- Relay, numberRelay *int) {
+func handleConnection(c net.Conn, num net.Conn, heatrbeat net.Conn, requestchan chan<- string, addRelay chan<- Relay, rmRelay chan<- Relay, numberRelay *int) {
 	//we first need to add current relay to the channel
 	//filling in the relay structure
 	relay := Relay{
@@ -115,7 +121,7 @@ func handleConnection(c net.Conn, num net.Conn, requestchan chan<- string, addRe
 
 	//ignore for the time being
 	defer func() {
-		color.Yellow("Exiting 3")
+		// color.Yellow("Exiting 3")
 		color.Yellow("Connection from %v closed.\n", c.RemoteAddr())
 		rmRelay <- relay
 	}()
@@ -125,8 +131,29 @@ func handleConnection(c net.Conn, num net.Conn, requestchan chan<- string, addRe
 	//to send the nnumber of relays
 	go sendNumber(num, numberRelay)
 
+	go relay.heartB(heatrbeat, rmRelay)
+
 	relay.WriteLinesFrom(relay.ch)
 
+}
+
+func (c Relay) heartB(hB net.Conn, rmRelay chan<- Relay) {
+	for {
+		time.Sleep(1 * time.Second)
+
+		_, err := hB.Write([]byte("Server is Up"))
+		if err != nil {
+			rmRelay <- c
+			break
+		}
+		res := make([]byte, 20)
+		_, err = hB.Read(res)
+		// color.Yellow(string(res[:n]))
+		if err != nil {
+			rmRelay <- c
+			break
+		}
+	}
 }
 
 // Initially check the number of the total relays available
@@ -149,7 +176,7 @@ func sendNumber(num net.Conn, numberRelay *int) {
 			break
 		}
 	}
-	fmt.Println("\t\t\tExiting1\n")
+	// fmt.Println("\t\t\tExiting1\n")
 
 }
 
@@ -168,17 +195,17 @@ func (c Relay) ServerRequest(requestchan chan<- string) {
 		// fmt.Printf("The read value is %vEND", string(link[:n]))
 
 		if err != nil {
-			color.Red("\t\tConnection is closed")
+			color.Red("\t\tConnection from %v is closed", c.number)
 			break
 		} else {
 			time.Sleep(1 * time.Second)
-			fmt.Printf("The request found is %v." + string(link[:n]))
+			fmt.Print("The request found is " + string(link[:n]) + "||\n")
 
 			_, err := url.ParseRequestURI(string(link[:n]))
 			if err != nil {
 				color.Yellow(string(link[:n]) + "C")
 				color.Magenta("Url is not correct")
-				c.conn.Write([]byte("The url received is not correct"))
+				// c.conn.Write([]byte("The url received is not correct"))
 				continue
 			}
 			res, err := http.Get(string(link[:n]))
@@ -188,7 +215,8 @@ func (c Relay) ServerRequest(requestchan chan<- string) {
 			}
 			responseData, err := ioutil.ReadAll(res.Body)
 
-			// fmt.Println(string(responseData))
+			fmt.Println(string(responseData))
+
 			c.conn.Write(responseData)
 			defer res.Body.Close()
 			if err != nil {
@@ -200,7 +228,7 @@ func (c Relay) ServerRequest(requestchan chan<- string) {
 		}
 
 	}
-	fmt.Println("\t\t\tExiting2\n")
+	// fmt.Println("\t\t\tExiting2\n")
 
 }
 
@@ -215,7 +243,6 @@ func (c Relay) WriteLinesFrom(ch <-chan string) {
 	}
 }
 func handleRelays(requestchan <-chan string, addRelay <-chan Relay, rmRelay <-chan Relay) {
-	// relays := make(map[net.Conn]chan<- string)
 	relaysDatabse := make(map[int]Relay)
 
 	for {
@@ -231,7 +258,7 @@ func handleRelays(requestchan <-chan string, addRelay <-chan Relay, rmRelay <-ch
 			}
 			color.Yellow(table.Render())
 		case relay := <-rmRelay:
-			color.Yellow("Relay disconnects: %v\n", relay.conn)
+			color.Yellow("Relay# %v which is %v is down\n", relay.number, relay.name)
 			delete(relaysDatabse, relay.number)
 		}
 	}

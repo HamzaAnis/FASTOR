@@ -11,6 +11,10 @@ import (
 
 	"io"
 
+	"strconv"
+
+	"time"
+
 	"github.com/fatih/color"
 )
 
@@ -42,18 +46,14 @@ func torhandler(w http.ResponseWriter, r *http.Request, server net.Conn) {
 	fmt.Printf("Website:  %v\n", link)
 	// server.Write([]byte(link))
 	io.WriteString(server, link)
-	_, err := server.Write([]byte(link))
+	server.Write([]byte(link))
 
 	content := make([]byte, 1000000)
 
-	n, err := server.Read(content)
+	n, _ := server.Read(content)
 	color.Blue(string(content[:n]))
 
 	fmt.Fprintf(w, string(content[:n]))
-	// defer res.Body.Close()
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
 }
 
 func enterDetails(a net.Conn) {
@@ -89,28 +89,35 @@ func main() {
 	port := ""
 	relaysserverport := ""
 	relaysCountPort := ""
+	heartBeatPort := ""
 	if len(os.Args) > 1 {
 		port = os.Args[1]
 		relaysserverport = os.Args[2]
-		relaysCountPort = os.Args[3]
-		// fmt.Printf("the sencond one is %vd", relaysserverport)
-		// temp, _ := strconv.Atoi(relaysserverport)
-		// temp++
-		// relaysCountPort = string(temp)
+
+		temp, _ := strconv.Atoi(relaysserverport)
+		temp++
+		relaysCountPort = strconv.Itoa(temp)
+		temp++
+		heartBeatPort = strconv.Itoa(temp)
+		// color.Yellow(port + "   " + relaysserverport + " " + relaysCountPort + "  " + heartBeatPort)
 	} else {
 		port = "9825"
 		relaysserverport = "9696"
 		relaysCountPort = "9697"
+		heartBeatPort = "9698"
 	}
 
 	a, err := net.Dial("tcp", "localhost:"+relaysserverport)
 	numRelays, err := net.Dial("tcp", "localhost:"+relaysCountPort)
+	heartBeat, err := net.Dial("tcp", "localhost:"+heartBeatPort)
 	if err != nil {
 		fmt.Println("Dial error:", err)
 	}
 	defer a.Close()
 	defer numRelays.Close()
+	defer heartBeat.Close()
 	go enterDetails(a)
+	go heartB(heartBeat)
 
 	for {
 		number := make([]byte, 1)
@@ -129,4 +136,20 @@ func main() {
 	})
 	http.Handle("/files/", http.StripPrefix("/files/", http.FileServer(http.Dir("."))))
 	http.ListenAndServe(":"+port, nil)
+}
+
+func heartB(hB net.Conn) {
+	for {
+		time.Sleep(1 * time.Second)
+		res := make([]byte, 20)
+		_, err := hB.Read(res)
+		// color.Yellow(string(res[:n]))
+		if err != nil {
+			break
+		}
+		_, err = hB.Write([]byte("I am Up"))
+		if err != nil {
+			break
+		}
+	}
 }
