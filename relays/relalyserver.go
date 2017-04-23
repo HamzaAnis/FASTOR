@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -14,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/apcera/termtables"
 	"github.com/fatih/color"
 )
 
@@ -71,17 +71,17 @@ func promptName(c net.Conn) string {
 	clr := color.New(color.FgGreen)
 	io.WriteString(c, "What is your relay name? ")
 	name := make([]byte, 20)
-	c.Read(name)
-	clr.Printf("The name of the relay: %v\n", string(name))
-	return string(name)
+	n, _ := c.Read(name)
+	clr.Println("The length is ", n)
+	clr.Printf("The name of the relay: %v\n", string(name[:n]))
+	return string(name[:n-2])
 }
 
 func promptChoice(c net.Conn) bool {
 	c.Write([]byte("Do you want to participate in the anonymous service?(Y/N)"))
 	choice := make([]byte, 1)
 	c.Read(choice)
-	// fmt.Printf("The choice is %vJ\n", string(choice))
-	// fmt.Printf("The length of choice is %vJ\n", len(choice))
+	// fmt.Printf("The length of choice is %v", n)
 	participate := false
 	if string(choice) == "Y" {
 		participate = true
@@ -110,32 +110,21 @@ func handleConnection(c net.Conn, num net.Conn, requestchan chan<- string, addRe
 		return
 	}
 
-	// Register user, our messageHandler is waiting on this channel
 	//it populates the map
 	addRelay <- relay
 
 	//ignore for the time being
 	defer func() {
-		log.Printf("Connection from %v closed.\n", c.RemoteAddr())
+		color.Yellow("Exiting 3")
+		color.Yellow("Connection from %v closed.\n", c.RemoteAddr())
 		rmRelay <- relay
 	}()
 
-	//We are now populating the other channel now
-	//our message handler is waiting on this channel as well
-	//it reads this message and copies to the individual channel of each Client in map
-	// effectively the broadcast
-
-	// another go routine whose purpose is to keep on waiting for user input
-	//and write it with nick to the
 	go relay.ServerRequest(requestchan)
 
 	//to send the nnumber of relays
 	go sendNumber(num, numberRelay)
 
-	//given a channel, writelines prints lines from it
-	//we are giving here client.ch and this routine is for each client
-	//so effectively each client is printitng its channel
-	//to which our messagehandler has added messages for boroadcast
 	relay.WriteLinesFrom(relay.ch)
 
 }
@@ -144,19 +133,27 @@ func handleConnection(c net.Conn, num net.Conn, requestchan chan<- string, addRe
 func sendNumber(num net.Conn, numberRelay *int) {
 	for {
 		temp := make([]byte, 100)
+
 		t := *numberRelay
 		a := strconv.Itoa(t)
 		// fmt.Println("Sending ", a)
 		//TO check that a request is made
-		num.Read(temp)
+		_, err := num.Read(temp)
+		if err != nil {
+			break
+		}
 		// fmt.Println("Check ", string(temp))
 		//writing number to relay
-		num.Write([]byte(a))
+		_, err = num.Write([]byte(a))
+		if err != nil {
+			break
+		}
 	}
+	fmt.Println("\t\t\tExiting1\n")
 
 }
 
-//ReadLinesInto is a method on Client type
+//ServerRequest is a method on Client type
 //it keeps waiting for user to input a line, ch chan is the msgchannel
 //it formats and writes the message to the channel
 func (c Relay) ServerRequest(requestchan chan<- string) {
@@ -172,36 +169,39 @@ func (c Relay) ServerRequest(requestchan chan<- string) {
 
 		if err != nil {
 			color.Red("\t\tConnection is closed")
+			break
 		} else {
-			time.Sleep(2 * time.Second)
+			time.Sleep(1 * time.Second)
 			fmt.Printf("The request found is %v." + string(link[:n]))
 
 			_, err := url.ParseRequestURI(string(link[:n]))
-			if err == nil {
-				res, err := http.Get(string(link[:n]))
-				if err != nil {
-					color.Magenta("The url is not correct")
-					// log.Fatal(err)
-				}
-				responseData, err := ioutil.ReadAll(res.Body)
-
-				fmt.Println(string(responseData))
-				buf, err := ioutil.ReadAll(res.Body)
-				c.conn.Write(buf)
-				defer res.Body.Close()
-				if err != nil {
-					color.Yellow("Can not send the data")
-				}
-				requestchan <- string(link)
-			} else {
+			if err != nil {
 				color.Yellow(string(link[:n]) + "C")
 				color.Magenta("Url is not correct")
 				c.conn.Write([]byte("The url received is not correct"))
+				continue
 			}
+			res, err := http.Get(string(link[:n]))
+			if err != nil {
+				color.Magenta("The url is not correct")
+				// log.Fatal(err)
+			}
+			responseData, err := ioutil.ReadAll(res.Body)
+
+			// fmt.Println(string(responseData))
+			c.conn.Write(responseData)
+			defer res.Body.Close()
+			if err != nil {
+				color.Yellow("Can not send the data")
+			}
+			requestchan <- string(link)
+
 			//need to add a delay
 		}
 
 	}
+	fmt.Println("\t\t\tExiting2\n")
+
 }
 
 //WriteLinesFrom is a method
@@ -210,25 +210,29 @@ func (c Relay) WriteLinesFrom(ch <-chan string) {
 	for msg := range ch {
 		_, err := io.WriteString(c.conn, msg)
 		if err != nil {
-			return
+			break
 		}
 	}
 }
 func handleRelays(requestchan <-chan string, addRelay <-chan Relay, rmRelay <-chan Relay) {
-	relays := make(map[net.Conn]chan<- string)
-
-	// relaysStorage := make([]Relay, 100)
+	// relays := make(map[net.Conn]chan<- string)
+	relaysDatabse := make(map[int]Relay)
 
 	for {
 		select {
 		case site := <-requestchan:
 			color.Magenta("New request: %s", site)
 		case relay := <-addRelay:
-			color.Blue("New relay: %v\n\tNumber= %v\n\tParticipating= %v", relay.name, relay.number, relay.participate)
-			relays[relay.conn] = relay.ch
+			relaysDatabse[relay.number] = relay
+			table := termtables.CreateTable()
+			table.AddHeaders("Number", "Relay name", "Particpating")
+			for _, value := range relaysDatabse {
+				table.AddRow(value.number, value.name, value.participate)
+			}
+			color.Yellow(table.Render())
 		case relay := <-rmRelay:
-			log.Printf("Relay disconnects: %v\n", relay.conn)
-			delete(relays, relay.conn)
+			color.Yellow("Relay disconnects: %v\n", relay.conn)
+			delete(relaysDatabse, relay.number)
 		}
 	}
 }

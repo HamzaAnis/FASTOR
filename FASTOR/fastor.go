@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -52,9 +51,9 @@ func torhandler(w http.ResponseWriter, r *http.Request, server net.Conn) {
 
 	fmt.Fprintf(w, string(content[:n]))
 	// defer res.Body.Close()
-	if err != nil {
-		log.Fatal(err)
-	}
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 }
 
 func enterDetails(a net.Conn) {
@@ -99,7 +98,7 @@ func main() {
 		// temp++
 		// relaysCountPort = string(temp)
 	} else {
-		port = "8785"
+		port = "9825"
 		relaysserverport = "9696"
 		relaysCountPort = "9697"
 	}
