@@ -101,7 +101,7 @@ func main() {
 		heartBeatPort = strconv.Itoa(temp)
 		// color.Yellow(port + "   " + relaysserverport + " " + relaysCountPort + "  " + heartBeatPort)
 	} else {
-		port = "8455"
+		port = "8474"
 		relaysserverport = "9696"
 		relaysCountPort = "9697"
 		heartBeatPort = "9698"

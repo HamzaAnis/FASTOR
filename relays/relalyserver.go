@@ -66,7 +66,6 @@ func main() {
 	rmRelay := make(chan Relay)
 
 	go handleRelays(relaysDatabse, requestchan, addRelay, rmRelay, &totalRelays)
-
 	for {
 		conn, err := connection.Accept()
 		conn2, err2 := connection2.Accept()
@@ -260,8 +259,9 @@ func handleRelays(relaysDatabse map[int]Relay, requestchan <-chan Request, addRe
 
 	for {
 		select {
-		case site := <-requestchan:
-			color.Magenta("New request: %s", site)
+		case relay := <-requestchan:
+			color.Magenta("New request: %s", relay.url)
+			relay.relay.getRequest(relay.url)
 		case relay := <-addRelay:
 			relaysDatabse[relay.number] = relay
 			displayTable(relaysDatabse)
